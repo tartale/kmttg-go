@@ -1,11 +1,11 @@
 # Where are all the schema files located? globs are supported eg  src/**/*.graphqls
 schema:
-  - ../graphql/schema/*.graphql
+  - ./*.graphql
 
 # Where should the generated server code go?
 exec:
-  filename: server.go
-  package: main
+  filename: ../pkg/server/generated.go
+  package: server
 
 # Uncomment to enable federation
 # federation:
@@ -14,13 +14,13 @@ exec:
 
 # Where should any generated model go?
 model:
-  filename: model/generated.go
+  filename: ../pkg/model/generated.go
   package: model
 
 # Where should the resolver implementations go?
 resolver:
   layout: follow-schema
-  dir: resolvers
+  dir: ../pkg/resolvers
   package: resolvers
 
 # Optional: turn on use ` + "`" + `gqlgen:"fieldName"` + "`" + ` tags in your model
@@ -42,7 +42,6 @@ resolver:
 # gqlgen will search for any type names in the schema in these go packages
 # if they match it will use them, otherwise it will generate them.
 autobind:
-#  - "github.com/tartale/kmttg-plus/graphql/graph/model"
 
 # This section declares type mapping between the GraphQL and go type systems
 #

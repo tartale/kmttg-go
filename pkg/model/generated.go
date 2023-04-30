@@ -3,6 +3,5 @@
 package model
 
 type Tivo struct {
-	Tivo    string `json:"tivo"`
-	Address string `json:"address"`
+	Name string `json:"name"`
 }

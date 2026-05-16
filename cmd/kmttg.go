@@ -19,10 +19,10 @@ import (
 	"golang.org/x/term"
 
 	"github.com/tartale/kmttg-plus/go/dist"
-	"github.com/tartale/kmttg-plus/go/pkg/beacon"
 	"github.com/tartale/kmttg-plus/go/pkg/client"
 	"github.com/tartale/kmttg-plus/go/pkg/config"
 	"github.com/tartale/kmttg-plus/go/pkg/jobs"
+	"github.com/tartale/kmttg-plus/go/pkg/loaders"
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
 	"github.com/tartale/kmttg-plus/go/pkg/resolvers"
 	"github.com/tartale/kmttg-plus/go/pkg/server"
@@ -38,8 +38,7 @@ var rootCmd = &cobra.Command{
 	Use:   "kmttg",
 	Short: "Port of KMTTG to golang",
 	Run: func(cmd *cobra.Command, args []string) {
-		startBeaconListener(cmd.Context())
-		startLoader(cmd.Context())
+		loaders.StartAll(cmd.Context())
 		startJobWorkers(cmd.Context())
 		runWebServer(cmd.Context())
 	},
@@ -72,18 +71,10 @@ func init() {
 		Use:   "terminal",
 		Short: "Starts a terminal for sending RPC commands to a Tivo",
 		Run: func(cmd *cobra.Command, args []string) {
-			startBeaconListener(cmd.Context())
+			loaders.StartAll(cmd.Context())
 			runTerminal()
 		},
 	})
-}
-
-func startBeaconListener(ctx context.Context) {
-	go beacon.Listen(ctx)
-}
-
-func startLoader(ctx context.Context) {
-	go tivos.RunBackgroundLoader(ctx)
 }
 
 func startJobWorkers(ctx context.Context) {

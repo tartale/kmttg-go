@@ -5,19 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/fs"
 	"os"
 	"path"
-	"path/filepath"
 	"sort"
-	"strings"
-	"sync"
-	"time"
 
 	"github.com/puzpuzpuz/xsync"
-	"github.com/tartale/go/pkg/errorx"
 	liberrorz "github.com/tartale/go/pkg/errorz"
-	"github.com/tartale/go/pkg/filez"
 	"github.com/tartale/kmttg-plus/go/pkg/apicontext"
 	"github.com/tartale/kmttg-plus/go/pkg/client"
 	"github.com/tartale/kmttg-plus/go/pkg/config"
@@ -28,61 +21,10 @@ import (
 	"go.uber.org/zap"
 )
 
-var (
-	tivoMap           = xsync.NewMapOf[*model.Tivo]()
-	loadFromCacheOnce sync.Once
-)
+var tivoMap = xsync.NewMapOf[*model.Tivo]()
 
-func RunBackgroundLoader(ctx context.Context) {
-	loadTicker := time.NewTicker(10 * time.Second)
-
-	LoadCacheFiles()
-	for range loadTicker.C {
-		err := LoadAll()
-		if err != nil {
-			logz.Logger.Warn("Error loading shows", zap.Error(err))
-			loadTicker.Reset(30 * time.Second)
-		} else {
-			loadTicker.Reset(5 * time.Minute)
-		}
-	}
-}
-
-func LoadCacheFiles() error {
-	loadFromCacheOnce.Do(
-		func() {
-			filepath.WalkDir(config.Values.CacheDir, func(path string, d fs.DirEntry, err error) error {
-				if filez.IsDir(path) {
-					return nil
-				}
-				if !strings.HasSuffix(path, ".json") {
-					return nil
-				}
-				tivo := model.Tivo{
-					Name: filez.NameWithoutExtension(path),
-				}
-				if loaded := loadFromCache(&tivo); !loaded {
-					logz.Logger.Warn("Cache could not be loaded; removing", zap.String("tivoName", tivo.Name))
-					filez.MustRemoveAll(path)
-					return nil
-				}
-				tivoMap.Store(tivo.Name, &tivo)
-				return nil
-			})
-		},
-	)
-
-	return nil
-}
-
-func LoadAll() error {
-	var errs errorx.Errors
-	tivoMap.Range(func(key string, val *model.Tivo) bool {
-		errs = append(errs, Load(val))
-		return true
-	})
-
-	return errs.Combine("errors when loading shows", "\n")
+func Store(tivo *model.Tivo) {
+	tivoMap.Store(tivo.Name, tivo)
 }
 
 func Load(tivo *model.Tivo) error {
@@ -198,49 +140,6 @@ func GetShowForID(recordingID string) (model.Show, error) {
 	}
 
 	return result, nil
-}
-
-func loadFromCache(tivo *model.Tivo) bool {
-	tivoCacheFile := path.Join(config.Values.CacheDir, tivo.Name+".json")
-	if _, err := os.Stat(tivoCacheFile); errors.Is(err, os.ErrNotExist) {
-		logz.Logger.Debug("No cache found", zap.String("tivoName", tivo.Name))
-		return false
-	}
-	logz.Logger.Debug("Loading shows from cache", zap.String("tivoName", tivo.Name))
-	data, err := os.ReadFile(tivoCacheFile)
-	if err != nil {
-		logz.Logger.Debug("Unable to load cache file", zap.String("tivoName", tivo.Name), zap.Error(err))
-		return false
-	}
-	var aux struct {
-		Name    string            `json:"name"`
-		Address string            `json:"address"`
-		Tsn     string            `json:"tsn"`
-		Shows   []json.RawMessage `json:"shows,omitempty"`
-	}
-	err = json.Unmarshal(data, &aux)
-	if err != nil {
-		logz.Logger.Debug("Unable to load cache file", zap.String("tivoName", tivo.Name), zap.Error(err))
-		return false
-	}
-	newTivo := model.Tivo{
-		Name:    aux.Name,
-		Address: aux.Address,
-		Tsn:     aux.Tsn,
-		Shows:   make([]model.Show, 0, len(aux.Shows)),
-	}
-	// Unmarshal each show using the shows package helper to handle wrapper types
-	for _, raw := range aux.Shows {
-		show, err := shows.UnmarshalShowFromJSON(raw, &newTivo)
-		if err != nil {
-			logz.Logger.Debug("Unable to unmarshal show from cache", zap.String("tivoName", tivo.Name), zap.Error(err))
-			return false
-		}
-		newTivo.Shows = append(newTivo.Shows, show)
-	}
-	logz.Logger.Debug("Successfully loaded all shows from cache", zap.String("tivoName", tivo.Name))
-	tivoMap.Store(tivo.Name, &newTivo)
-	return true
 }
 
 func storeToCache(tivo *model.Tivo) {

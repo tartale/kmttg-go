@@ -5,15 +5,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path"
+	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/puzpuzpuz/xsync"
 	"github.com/tartale/go/pkg/errorx"
 	liberrorz "github.com/tartale/go/pkg/errorz"
+	"github.com/tartale/go/pkg/filez"
 	"github.com/tartale/kmttg-plus/go/pkg/apicontext"
 	"github.com/tartale/kmttg-plus/go/pkg/client"
 	"github.com/tartale/kmttg-plus/go/pkg/config"
@@ -32,6 +36,7 @@ var (
 func RunBackgroundLoader(ctx context.Context) {
 	loadTicker := time.NewTicker(10 * time.Second)
 
+	LoadCacheFiles()
 	for range loadTicker.C {
 		err := LoadAll()
 		if err != nil {
@@ -41,6 +46,33 @@ func RunBackgroundLoader(ctx context.Context) {
 			loadTicker.Reset(5 * time.Minute)
 		}
 	}
+}
+
+func LoadCacheFiles() error {
+	loadFromCacheOnce.Do(
+		func() {
+			filepath.WalkDir(config.Values.CacheDir, func(path string, d fs.DirEntry, err error) error {
+				if filez.IsDir(path) {
+					return nil
+				}
+				if !strings.HasSuffix(path, ".json") {
+					return nil
+				}
+				tivo := model.Tivo{
+					Name: filez.NameWithoutExtension(path),
+				}
+				if loaded := loadFromCache(&tivo); !loaded {
+					logz.Logger.Warn("Cache could not be loaded; removing", zap.String("tivoName", tivo.Name))
+					filez.MustRemoveAll(path)
+					return nil
+				}
+				tivoMap.Store(tivo.Name, &tivo)
+				return nil
+			})
+		},
+	)
+
+	return nil
 }
 
 func LoadAll() error {
@@ -54,16 +86,6 @@ func LoadAll() error {
 }
 
 func Load(tivo *model.Tivo) error {
-	loadedFromCache := false
-
-	// Check if there's a cache to initialize from the first time
-	loadFromCacheOnce.Do(func() {
-		loadedFromCache = loadFromCache(tivo)
-	})
-	if loadedFromCache {
-		return nil
-	}
-
 	logz.Logger.Debug("Loading shows via RPC", zap.String("tivoName", tivo.Name))
 	tivoClient, err := client.NewRpcClient(tivo)
 	if err != nil {

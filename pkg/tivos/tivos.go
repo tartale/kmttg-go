@@ -95,7 +95,7 @@ func LoadShows(ctx context.Context, tivoClient *client.TivoClient) ([]model.Show
 		err     error
 	)
 
-	for retries := 0; retries < retryCount; retries++ {
+	for range retryCount {
 		shows, err = tivoClient.GetShows(ctx)
 		if errors.Is(err, errorz.ErrReconnected) {
 			continue

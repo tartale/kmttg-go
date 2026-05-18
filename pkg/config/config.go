@@ -12,24 +12,22 @@ import (
 	"github.com/tartale/go/pkg/structs"
 )
 
-var (
-	Values         values
-	TivoDecoderCmd []string
-	ComskipCmd     []string
-)
+var Values values
 
 type values struct {
 	LogLevel           string        `mapstructure:"KMTTG_LOG_LEVEL" default:"INFO"`
 	LogMessages        bool          `mapstructure:"KMTTG_LOG_MESSAGES" default:"false"`
 	MaxBackgroundTasks int           `mapstructure:"KMTTG_MAX_BACKGROUND_TASKS" default:"4"`
-	MediaAccessKey     string        `mapstructure:"KMTTG_MEDIA_ACCESS_KEY" default:""`
-	Port               string        `mapstructure:"KMTTG_PORT" default:"8080"`
+	MediaAccessKey     string        `mapstructure:"KMTTG_MEDIA_ACCESS_KEY" default:"" validate:"required,alphanum"`
+	Port               string        `mapstructure:"KMTTG_PORT" default:"7676"`
 	Timeout            time.Duration `mapstructure:"KMTTG_TIMEOUT" default:"10s"`
+	ReloadInterval     time.Duration `mapstructure:"KMTTG_RELOAD_INTERVAL" default:"5m"`
 	TempDir            string        `mapstructure:"KMTTG_TEMP_DIR" default:"${PWD}/.tmp" validate:"dir"`
 	ToolsDir           string        `mapstructure:"KMTTG_TOOLS_DIR" default:"${PWD}/tools" validate:"dir"`
 	OutputDir          string        `mapstructure:"KMTTG_OUTPUT_DIR" default:"${PWD}/output" validate:"dir"`
 	CacheDir           string        `mapstructure:"KMTTG_CACHE_DIR" default:"${PWD}/output/cache" validate:"dir"`
 	WebUIDir           string        `mapstructure:"KMTTG_WEBUI_DIR" default:""`
+	TivoDecodeCmd      string        `mapstructure:"KMTTG_TIVODECODE_CMD" default:"${KMTTG_TOOLS_DIR}/tivodecode -m ${KMTTG_MEDIA_ACCESS_KEY} -"`
 }
 
 func (v *values) SetDefaults() {

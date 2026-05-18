@@ -6,21 +6,22 @@ import (
 	"time"
 
 	"github.com/tartale/go/pkg/errorx"
+	"github.com/tartale/kmttg-plus/go/pkg/config"
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
 	"github.com/tartale/kmttg-plus/go/pkg/tivos"
 	"go.uber.org/zap"
 )
 
-func RunLoader(ctx context.Context, initialDuration time.Duration) {
-	loadAllTicker := time.NewTicker(initialDuration)
+var LoadTicker = time.NewTicker(config.Values.ReloadInterval)
 
-	for range loadAllTicker.C {
+func RunLoader(ctx context.Context) {
+	for range LoadTicker.C {
 		err := LoadAll(ctx)
 		if err != nil {
 			logz.Logger.Warn("Error loading shows", zap.Error(err))
-			loadAllTicker.Reset(30 * time.Second)
+			LoadTicker.Reset(30 * time.Second)
 		} else {
-			loadAllTicker.Reset(5 * time.Minute)
+			LoadTicker.Reset(config.Values.ReloadInterval)
 		}
 	}
 }

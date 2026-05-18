@@ -2,7 +2,6 @@ package loaders
 
 import (
 	"context"
-	"time"
 
 	"github.com/tartale/kmttg-plus/go/pkg/loaders/background"
 	"github.com/tartale/kmttg-plus/go/pkg/loaders/beacon"
@@ -10,10 +9,7 @@ import (
 )
 
 func StartAll(ctx context.Context) {
-	backgroundDuration := time.Duration(30 * time.Second)
-	if ok := cache.LoadAllFilesOnce(); ok {
-		backgroundDuration = time.Duration(5 * time.Minute)
-	}
+	cache.LoadAllFilesOnce()
 	go beacon.Listen(ctx)
-	go background.RunLoader(ctx, backgroundDuration)
+	go background.RunLoader(ctx)
 }

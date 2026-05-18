@@ -3,7 +3,6 @@ package config
 import (
 	"fmt"
 	"os"
-	"path"
 	"reflect"
 	"sync"
 
@@ -59,9 +58,6 @@ func InitConfig(cfgFile string) {
 		if err != nil {
 			panic(err)
 		}
-
-		// TODO: don't hard-code this
-		TivoDecoderCmd = []string{path.Join(Values.ToolsDir, "tivolibre", "tivodecoder"), "-m", Values.MediaAccessKey}
 
 		fmt.Fprintln(os.Stdout, "config loaded", Values)
 	})

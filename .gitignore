@@ -1,1 +1,6 @@
-debug/
+.DS_Store
+.envrc
+.vscode
+input/files
+output
+overrides

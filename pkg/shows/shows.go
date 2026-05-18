@@ -33,6 +33,25 @@ func New(tivo *model.Tivo, objectID string, recording *message.RecordingItem, co
 	return result
 }
 
+func Clone(show model.Show) model.Show {
+	switch show.GetKind() {
+	case model.ShowKindMovie:
+		clone := *(show.(*movie))
+		return &clone
+
+	case model.ShowKindSeries:
+		clone := *(show.(*series))
+		return &clone
+
+	case model.ShowKindEpisode:
+		clone := *(show.(*series))
+		return &clone
+
+	default:
+		panic(fmt.Errorf("unexpected show kind: %v: %w", show.GetKind(), liberrorz.ErrFatal))
+	}
+}
+
 // UnmarshalShowFromJSON unmarshals a Show from JSON bytes, handling both
 // wrapper types (with Details) and plain model types.
 func UnmarshalShowFromJSON(data []byte, tivo *model.Tivo) (model.Show, error) {

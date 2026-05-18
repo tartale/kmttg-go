@@ -4,7 +4,6 @@ go 1.25.0
 
 require (
 	github.com/99designs/gqlgen v0.17.36
-	github.com/PaesslerAG/gval v1.2.2
 	github.com/go-playground/validator/v10 v10.15.3
 	github.com/google/uuid v1.3.1
 	github.com/gorilla/mux v1.8.0
@@ -28,6 +27,7 @@ require (
 )
 
 require (
+	github.com/PaesslerAG/gval v1.2.2 // indirect
 	github.com/a8m/envsubst v1.4.2 // indirect
 	github.com/agnivade/levenshtein v1.1.1 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect

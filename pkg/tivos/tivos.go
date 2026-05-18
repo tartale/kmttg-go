@@ -28,7 +28,7 @@ func Store(tivo *model.Tivo) {
 }
 
 func Load(tivo *model.Tivo) error {
-	logz.Logger.Debug("Loading shows via RPC", zap.String("tivoName", tivo.Name))
+	logz.Logger.Info("Loading shows via RPC", zap.String("tivoName", tivo.Name))
 	tivoClient, err := client.NewRpcClient(tivo)
 	if err != nil {
 		return err
@@ -42,7 +42,7 @@ func Load(tivo *model.Tivo) error {
 	newTivo := *tivo
 	newTivo.Shows = shows
 	tivoMap.Store(tivo.Name, &newTivo)
-	logz.Logger.Debug("Successfully loaded all shows via RPC", zap.String("tivoName", tivo.Name))
+	logz.Logger.Info("Successfully loaded all shows via RPC", zap.String("tivoName", tivo.Name))
 	storeToCache(&newTivo)
 
 	return nil
@@ -124,10 +124,8 @@ func GetShowForID(recordingID string) (model.Show, error) {
 	var result model.Show
 	tivoMap.Range(func(key string, val *model.Tivo) bool {
 		for _, show := range val.Shows {
-			details := shows.GetDetails(show)
-			if details.Recording.RecordingID == recordingID {
-				clone := shows.New(val, details.ObjectID, &details.Recording, &details.Collection)
-				result = clone
+			if show.GetID() == recordingID {
+				result = shows.Clone(show)
 				return false
 			}
 		}

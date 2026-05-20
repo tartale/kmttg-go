@@ -53,7 +53,7 @@ func (t *TivoClient) GetShows(ctx context.Context) ([]model.Show, error) {
 		}
 		ctx = apicontext.Wrap(ctx).WithShowOffset(nextOffset)
 	}
-	result = shows.MergeEpisodes(result)
+	result = shows.ExtractSeries(result)
 
 	return result, nil
 }

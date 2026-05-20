@@ -44,7 +44,7 @@ func Clone(show model.Show) model.Show {
 		return &clone
 
 	case model.ShowKindEpisode:
-		clone := *(show.(*series))
+		clone := *(show.(*episode))
 		return &clone
 
 	default:
@@ -153,7 +153,7 @@ func WithImageURL(show model.Show, targetDimensions *apicontext.ImageDimensions)
 	return result
 }
 
-func AsAPIType(show model.Show) model.Show {
+func AsApiType(show model.Show) model.Show {
 	switch show.GetKind() {
 
 	case model.ShowKindMovie:
@@ -170,17 +170,21 @@ func AsAPIType(show model.Show) model.Show {
 	}
 }
 
-func MergeEpisodes(shows []model.Show) []model.Show {
+// ExtractSeries takes a flat list of shows (that contains a mix of Movies and Episodes)
+// and returns a "folded" list of Movies and Series, where the Episodes
+// are now nested as a list within their parent Series.
+func ExtractSeries(shows []model.Show) []model.Show {
 	combinedShowsMap := make(map[string]model.Show)
 
 	for _, show := range shows {
 		if show.GetKind() == model.ShowKindEpisode {
 			if existingSeries, exists := combinedShowsMap[show.GetTitle()]; exists {
-				episode := show.(*episode).Episode
-				series := existingSeries.(*series)
-				series.Episodes = append(series.Episodes, episode)
-				if series.RecordedOn.Before(episode.RecordedOn) {
-					series.RecordedOn = episode.RecordedOn
+				episode := show.(*episode)
+				castedExistingSeries := existingSeries.(*series)
+				castedExistingSeries.episodes = append(castedExistingSeries.episodes, episode)
+				castedExistingSeries.Episodes = append(castedExistingSeries.Episodes, episode.Episode)
+				if castedExistingSeries.RecordedOn.Before(episode.RecordedOn) {
+					castedExistingSeries.RecordedOn = episode.RecordedOn
 				}
 			} else {
 				episode := show.(*episode)
@@ -200,6 +204,19 @@ func MergeEpisodes(shows []model.Show) []model.Show {
 	})
 
 	return combinedShows
+}
+
+func GetEpisodesForSeries(show model.Show) []model.Show {
+	if show.GetKind() != model.ShowKindSeries {
+		panic(fmt.Errorf("unexpected show kind: %v: %w", show.GetKind(), liberrorz.ErrFatal))
+	}
+	var episodes []model.Show
+	series := show.(*series)
+	for _, episode := range series.episodes {
+		episodes = append(episodes, episode)
+	}
+
+	return episodes
 }
 
 func ParseIDNumber(id string) string {
@@ -285,20 +302,22 @@ func (m *movie) CanonicalName() string {
 
 type series struct {
 	*model.Series
-	Details Details `json:"details,omitempty"`
+	episodes []*episode
+	Details  Details `json:"details,omitempty"`
 }
 
-func newSeries(episode *episode) *series {
+func newSeries(eps *episode) *series {
 	return &series{
 		Series: &model.Series{
-			ID:          episode.SeriesID,
+			ID:          eps.SeriesID,
 			Kind:        model.ShowKindSeries,
-			Title:       episode.Title,
-			RecordedOn:  episode.RecordedOn,
-			Description: episode.Description,
-			Episodes:    []*model.Episode{episode.Episode},
+			Title:       eps.Title,
+			RecordedOn:  eps.RecordedOn,
+			Description: eps.Description,
+			Episodes:    []*model.Episode{eps.Episode},
 		},
-		Details: episode.Details,
+		Details:  eps.Details,
+		episodes: []*episode{eps},
 	}
 }
 

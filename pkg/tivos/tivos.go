@@ -10,6 +10,7 @@ import (
 	"sort"
 
 	"github.com/puzpuzpuz/xsync"
+	"github.com/tartale/go/pkg/errorx"
 	liberrorz "github.com/tartale/go/pkg/errorz"
 	"github.com/tartale/kmttg-plus/go/pkg/apicontext"
 	"github.com/tartale/kmttg-plus/go/pkg/client"
@@ -25,6 +26,19 @@ var tivoMap = xsync.NewMapOf[*model.Tivo]()
 
 func Store(tivo *model.Tivo) {
 	tivoMap.Store(tivo.Name, tivo)
+}
+
+func LoadAll(ctx context.Context) error {
+	var errs errorx.Errors
+	if tivoMap.Size() == 0 {
+		return errors.New("no TiVos found")
+	}
+	tivoMap.Range(func(key string, tivo *model.Tivo) bool {
+		errs = append(errs, Load(tivo))
+		return true
+	})
+
+	return errs.Combine("errors when loading shows", "\n")
 }
 
 func Load(tivo *model.Tivo) error {
@@ -79,22 +93,21 @@ func LoadShows(ctx context.Context, tivoClient *client.TivoClient) ([]model.Show
 }
 
 func List(ctx context.Context) []*model.Tivo {
-	var list []*model.Tivo
+	var resultList []*model.Tivo
 	tivoFilterFn := apicontext.TivoFilterFn(ctx)
 	showFilterFn := apicontext.ShowFilterFn(ctx)
 	imageDimensions := apicontext.ShowImageDimensions(ctx)
 
-	tivoMap.Range(func(key string, val *model.Tivo) bool {
-		if tivoFilterFn != nil && !tivoFilterFn(val) {
+	tivoMap.Range(func(key string, tivo *model.Tivo) bool {
+		if tivoFilterFn != nil && !tivoFilterFn(tivo) {
 			return true
 		}
-		tivo := *val
-		list = append(list, &tivo)
-
-		tivo.Shows = []model.Show{}
+		resultTivo := *tivo
+		resultList = append(resultList, &resultTivo)
+		resultTivo.Shows = []model.Show{}
 		offsetCountdown := apicontext.ShowOffset(ctx)
 		limitCountdown := apicontext.ShowLimit(ctx)
-		for _, show := range val.Shows {
+		for _, show := range tivo.Shows {
 			if limitCountdown == 0 {
 				break
 			}
@@ -106,18 +119,19 @@ func List(ctx context.Context) []*model.Tivo {
 				continue
 			}
 			show = shows.WithImageURL(show, imageDimensions)
-			tivo.Shows = append(tivo.Shows, shows.AsAPIType(show))
+			show = shows.AsApiType(show)
+			resultTivo.Shows = append(resultTivo.Shows, show)
 			limitCountdown--
 		}
 
 		return true
 	})
 
-	sort.Slice(list, func(i, j int) bool {
-		return list[i].Name < list[j].Name
+	sort.Slice(resultList, func(i, j int) bool {
+		return resultList[i].Name < resultList[j].Name
 	})
 
-	return list
+	return resultList
 }
 
 func GetShowForID(recordingID string) (model.Show, error) {
@@ -127,6 +141,15 @@ func GetShowForID(recordingID string) (model.Show, error) {
 			if show.GetID() == recordingID {
 				result = shows.Clone(show)
 				return false
+			}
+			if show.GetKind() == model.ShowKindSeries {
+				episodes := shows.GetEpisodesForSeries(show)
+				for _, episode := range episodes {
+					if episode.GetID() == recordingID {
+						result = shows.Clone(episode)
+						return false
+					}
+				}
 			}
 		}
 

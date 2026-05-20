@@ -52,6 +52,28 @@ func Clone(show model.Show) model.Show {
 	}
 }
 
+// MarshalShowToJSON marshals a Show to JSON bytes, preserving wrapper details when present.
+func MarshalShowToJSON(show model.Show) ([]byte, error) {
+	if show == nil {
+		return nil, fmt.Errorf("marshal show: nil show")
+	}
+
+	switch show.GetKind() {
+	case model.ShowKindMovie:
+		s := show.(*movie)
+		return json.MarshalIndent(s, "", "  ")
+	case model.ShowKindSeries:
+		s := show.(*series)
+		return json.MarshalIndent(s, "", "  ")
+	case model.ShowKindEpisode:
+		s := show.(*episode)
+		return json.MarshalIndent(s, "", "  ")
+
+	default:
+		return nil, fmt.Errorf("unknown show kind: %s", show.GetKind())
+	}
+}
+
 // UnmarshalShowFromJSON unmarshals a Show from JSON bytes, handling both
 // wrapper types (with Details) and plain model types.
 func UnmarshalShowFromJSON(data []byte, tivo *model.Tivo) (model.Show, error) {

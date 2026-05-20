@@ -170,9 +170,33 @@ func storeToCache(tivo *model.Tivo) {
 		return
 	}
 	tivoCacheFile := path.Join(config.Values.CacheDir, tivo.Name+".json")
-	data, err := json.MarshalIndent(tivo, "", "  ")
+
+	type cachePayload struct {
+		Name    string            `json:"name"`
+		Address string            `json:"address"`
+		Tsn     string            `json:"tsn"`
+		Shows   []json.RawMessage `json:"shows,omitempty"`
+	}
+
+	payload := cachePayload{
+		Name:    tivo.Name,
+		Address: tivo.Address,
+		Tsn:     tivo.Tsn,
+		Shows:   make([]json.RawMessage, 0, len(tivo.Shows)),
+	}
+
+	for _, show := range tivo.Shows {
+		showBytes, err := shows.MarshalShowToJSON(show)
+		if err != nil {
+			logz.Logger.Debug("Unable to marshal show for cache; skipping cache write", zap.String("tivoName", tivo.Name), zap.Error(err))
+			return
+		}
+		payload.Shows = append(payload.Shows, showBytes)
+	}
+
+	data, err := json.MarshalIndent(payload, "", "  ")
 	if err != nil {
-		logz.Logger.Debug("Unable to marshal Tivo to JSON; skipping cache write", zap.String("tivoName", tivo.Name), zap.Error(err))
+		logz.Logger.Debug("Unable to marshal Tivo cache payload to JSON; skipping cache write", zap.String("tivoName", tivo.Name), zap.Error(err))
 		return
 	}
 	err = os.WriteFile(tivoCacheFile, data, 0o664)

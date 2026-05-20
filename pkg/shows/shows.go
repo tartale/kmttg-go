@@ -182,6 +182,12 @@ func AsApiType(show model.Show) model.Show {
 		return show.(*movie).Movie
 
 	case model.ShowKindSeries:
+		detailedSeries := show.(*series)
+		result := show.(*series).Series
+		for _, episode := range detailedSeries.Episodes {
+			apiEpisode := AsApiType(episode).(*model.Episode)
+			result.Episodes = append(result.Episodes, apiEpisode)
+		}
 		return show.(*series).Series
 
 	case model.ShowKindEpisode:
@@ -201,12 +207,14 @@ func ExtractSeries(shows []model.Show) []model.Show {
 	for _, show := range shows {
 		if show.GetKind() == model.ShowKindEpisode {
 			if existingSeries, exists := combinedShowsMap[show.GetTitle()]; exists {
-				episode := show.(*episode)
-				castedExistingSeries := existingSeries.(*series)
-				castedExistingSeries.episodes = append(castedExistingSeries.episodes, episode)
-				castedExistingSeries.Episodes = append(castedExistingSeries.Episodes, episode.Episode)
-				if castedExistingSeries.RecordedOn.Before(episode.RecordedOn) {
-					castedExistingSeries.RecordedOn = episode.RecordedOn
+				detailedEpisode := show.(*episode)
+				apiEpisode := detailedEpisode.Episode
+				detailedExistingSeries := existingSeries.(*series)
+				apiExistingSeries := detailedExistingSeries.Series
+				detailedExistingSeries.Episodes = append(detailedExistingSeries.Episodes, detailedEpisode)
+				apiExistingSeries.Episodes = append(apiExistingSeries.Episodes, apiEpisode)
+				if detailedExistingSeries.RecordedOn.Before(detailedEpisode.RecordedOn) {
+					detailedExistingSeries.RecordedOn = detailedEpisode.RecordedOn
 				}
 			} else {
 				episode := show.(*episode)
@@ -234,7 +242,7 @@ func GetEpisodesForSeries(show model.Show) []model.Show {
 	}
 	var episodes []model.Show
 	series := show.(*series)
-	for _, episode := range series.episodes {
+	for _, episode := range series.Episodes {
 		episodes = append(episodes, episode)
 	}
 
@@ -324,23 +332,26 @@ func (m *movie) CanonicalName() string {
 
 type series struct {
 	*model.Series
-	episodes []*episode
-	Details  Details `json:"details,omitempty"`
+	Episodes []*episode `json:"episodes,omitempty"`
+	Details  Details    `json:"details,omitempty"`
 }
 
-func newSeries(eps *episode) *series {
-	return &series{
+func newSeries(detailedEpisode *episode) *series {
+	detailedSeries := &series{
 		Series: &model.Series{
-			ID:          eps.SeriesID,
+			ID:          detailedEpisode.SeriesID,
 			Kind:        model.ShowKindSeries,
-			Title:       eps.Title,
-			RecordedOn:  eps.RecordedOn,
-			Description: eps.Description,
-			Episodes:    []*model.Episode{eps.Episode},
+			Title:       detailedEpisode.Title,
+			RecordedOn:  detailedEpisode.RecordedOn,
+			Description: detailedEpisode.Description,
 		},
-		Details:  eps.Details,
-		episodes: []*episode{eps},
+		Details:  detailedEpisode.Details,
+		Episodes: []*episode{detailedEpisode},
 	}
+	apiEpisode := detailedEpisode.Episode
+	detailedSeries.Series.Episodes = []*model.Episode{apiEpisode}
+
+	return detailedSeries
 }
 
 func (s *series) CanonicalName() string {

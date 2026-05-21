@@ -55,7 +55,7 @@ func Clone(show model.Show) model.Show {
 // MarshalShowToJSON marshals a Show to JSON bytes, preserving wrapper details when present.
 func MarshalShowToJSON(show model.Show) ([]byte, error) {
 	if show == nil {
-		return nil, fmt.Errorf("marshal show: nil show")
+		return nil, fmt.Errorf("error marshaling show: no value provided")
 	}
 
 	switch show.GetKind() {
@@ -81,7 +81,7 @@ func UnmarshalShowFromJSON(data []byte, tivo *model.Tivo) (model.Show, error) {
 		Kind model.ShowKind `json:"kind"`
 	}
 	if err := json.Unmarshal(data, &kind); err != nil {
-		return nil, fmt.Errorf("unmarshal show kind: %w", err)
+		return nil, fmt.Errorf("error unmarshalling show kind: %w", err)
 	}
 
 	// Check if Details field exists
@@ -95,29 +95,26 @@ func UnmarshalShowFromJSON(data []byte, tivo *model.Tivo) (model.Show, error) {
 		switch kind.Kind {
 		case model.ShowKindMovie:
 			m := movie{Movie: &model.Movie{}}
+			m.Details.Tivo = tivo
 			if err := json.Unmarshal(data, &m); err != nil {
-				return nil, fmt.Errorf("unmarshal movie with details: %w", err)
-			}
-			if m.Details.Tivo == nil {
-				m.Details.Tivo = tivo
+				return nil, fmt.Errorf("error unmarshaling movie with details: %w", err)
 			}
 			return &m, nil
 		case model.ShowKindSeries:
 			s := series{Series: &model.Series{}}
+			s.Details.Tivo = tivo
 			if err := json.Unmarshal(data, &s); err != nil {
-				return nil, fmt.Errorf("unmarshal series with details: %w", err)
+				return nil, fmt.Errorf("error unmarshaling series with details: %w", err)
 			}
-			if s.Details.Tivo == nil {
-				s.Details.Tivo = tivo
+			for _, e := range s.Episodes {
+				e.Details.Tivo = tivo
 			}
 			return &s, nil
 		case model.ShowKindEpisode:
 			e := episode{Episode: &model.Episode{}}
+			e.Details.Tivo = tivo
 			if err := json.Unmarshal(data, &e); err != nil {
-				return nil, fmt.Errorf("unmarshal episode with details: %w", err)
-			}
-			if e.Details.Tivo == nil {
-				e.Details.Tivo = tivo
+				return nil, fmt.Errorf("error unmarshaling episode with details: %w", err)
 			}
 			return &e, nil
 		default:

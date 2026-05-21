@@ -2,6 +2,7 @@ package decoder
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os/exec"
 	"strings"
@@ -17,9 +18,9 @@ func Decode(ctx context.Context, in io.Reader, out io.Writer) error {
 	decoder.Stdout = out
 	logz.LoggerX.Debugf("Start decoding")
 	if err := decoder.Run(); err != nil {
-		logz.LoggerX.Errorf("%w: error running decoder", err)
+		logz.LoggerX.Error(fmt.Errorf("error running decoder: %w", err))
 		return err
 	}
-	logz.LoggerX.Debugf("Finished decoding")
+	logz.LoggerX.Debug("Finished decoding")
 	return nil
 }

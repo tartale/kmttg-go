@@ -33,8 +33,7 @@ func getDownloadURL(show model.Show) (*url.URL, error) {
 	showDetails := shows.GetDetails(show)
 	showTitle := url.PathEscape(show.GetTitle())
 	showIDNumber := shows.ParseIDNumber(showDetails.ObjectID)
-	downloadBaseURL := fmt.Sprintf("http://%s/download/%s.Tivo",
-		showDetails.Tivo.Address, showTitle)
+	downloadBaseURL := fmt.Sprintf("http://%s/download/%s.Tivo", showDetails.Tivo.Address, showTitle)
 	downloadURL, err := url.Parse(downloadBaseURL)
 	if err != nil {
 		return nil, err

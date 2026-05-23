@@ -4,20 +4,16 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os/exec"
-	"strings"
 
 	"github.com/tartale/kmttg-plus/go/pkg/config"
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
+	"github.com/tartale/kmttg-plus/go/pkg/tivolibre"
 )
 
 func Decode(ctx context.Context, in io.Reader, out io.Writer) error {
-	decoderCommand := strings.Split(config.Values.TivoDecodeCmd, " ")
-	decoder := exec.CommandContext(ctx, decoderCommand[0], decoderCommand[1:]...)
-	decoder.Stdin = in
-	decoder.Stdout = out
 	logz.LoggerX.Debugf("Start decoding")
-	if err := decoder.Run(); err != nil {
+	decoder := tivolibre.NewDecoder(config.Values.MediaAccessKey)
+	if err := decoder.Decode(in, out); err != nil {
 		logz.LoggerX.Error(fmt.Errorf("error running decoder: %w", err))
 		return err
 	}

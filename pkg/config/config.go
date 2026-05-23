@@ -22,12 +22,11 @@ type values struct {
 	Port               string        `mapstructure:"KMTTG_PORT" default:"7676"`
 	Timeout            time.Duration `mapstructure:"KMTTG_TIMEOUT" default:"10s"`
 	ReloadInterval     time.Duration `mapstructure:"KMTTG_RELOAD_INTERVAL" default:"5m"`
-	TempDir            string        `mapstructure:"KMTTG_TEMP_DIR" default:"${PWD}/.tmp" validate:"dir"`
 	ToolsDir           string        `mapstructure:"KMTTG_TOOLS_DIR" default:"${PWD}/tools" validate:"dir"`
 	OutputDir          string        `mapstructure:"KMTTG_OUTPUT_DIR" default:"${PWD}/output" validate:"dir"`
 	CacheDir           string        `mapstructure:"KMTTG_CACHE_DIR" default:"${PWD}/output/cache" validate:"dir"`
-	WebUIDir           string        `mapstructure:"KMTTG_WEBUI_DIR" default:""`
-	TivoDecodeCmd      string        `mapstructure:"KMTTG_TIVODECODE_CMD" default:"${KMTTG_TOOLS_DIR}/tivodecode -m ${KMTTG_MEDIA_ACCESS_KEY} -"`
+	TempDir            string        `mapstructure:"KMTTG_TEMP_DIR" default:"${PWD}/output/.tmp" validate:"dir"`
+	WebUIDir           string        `mapstructure:"KMTTG_WEBUI_DIR" default:"${PWD}/dist/webui" validate:"dir"`
 }
 
 func (v *values) SetDefaults() {

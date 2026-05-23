@@ -26,6 +26,7 @@ import (
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
 	"github.com/tartale/kmttg-plus/go/pkg/resolvers"
 	"github.com/tartale/kmttg-plus/go/pkg/server"
+	"github.com/tartale/kmttg-plus/go/pkg/tivolibre"
 	"github.com/tartale/kmttg-plus/go/pkg/tivos"
 )
 
@@ -75,6 +76,14 @@ func init() {
 			runTerminal()
 		},
 	})
+	rootCmd.AddCommand(&cobra.Command{
+		Use:   "decode",
+		Short: "Decodes a .TiVo file or program stream from stdin to stdout",
+		Run: func(cmd *cobra.Command, args []string) {
+			runTivoDecode()
+		},
+	})
+
 }
 
 func startJobWorkers(ctx context.Context) {
@@ -169,5 +178,13 @@ func runTerminal() {
 			break
 		}
 		tivoClient.Write([]byte(line + crlf))
+	}
+}
+
+func runTivoDecode() {
+	decoder := tivolibre.NewDecoder(config.Values.MediaAccessKey)
+	err := decoder.Decode(os.Stdin, os.Stdout)
+	if err != nil {
+		fmt.Printf("error: %v", err)
 	}
 }

@@ -64,7 +64,7 @@ func newTivoFromServiceEntry(entry *zeroconf.ServiceEntry) (*model.Tivo, error) 
 	if platform, ok = properties["platform"]; !ok {
 		return nil, errors.New("device does not have a platform")
 	}
-	if !strings.Contains(platform, "Series") {
+	if !strings.Contains(platform, "Series") && !strings.Contains(platform, "Keystone") {
 		return nil, errors.New("device is not a Tivo DVR")
 	}
 	if len(entry.AddrIPv4) == 0 {

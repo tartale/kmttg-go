@@ -4,17 +4,23 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 )
 
 func TestDebugParseTiVoPrivateData(t *testing.T) {
-	file, err := os.Open("../../test/data/Odd Squad - Odd Way Round Strictly Odd Dancing (05_22_2026).TiVo")
+	mediaAccessKey := os.Getenv("KMTTG_MEDIA_ACCESS_KEY")
+	testDataDir := os.Getenv("KMTTG_TEST_DATA_DIR")
+	if mediaAccessKey == "" || testDataDir == "" {
+		t.Skip("Skipping test: requires KMTTG_MEDIA_ACCESS_KEY and KMTTG_TEST_DATA_DIR environment variables to be set")
+	}
+	file, err := os.Open(filepath.Join(testDataDir, "encrypted.TiVo"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer file.Close()
 
-	ts := NewTivoStream(file, os.Getenv("KMTTG_MEDIA_ACCESS_KEY"))
+	ts := NewTivoStream(file, mediaAccessKey)
 	_, err = ts.ProcessMetadata()
 	if err != nil {
 		t.Fatal(err)

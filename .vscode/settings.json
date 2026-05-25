@@ -1,0 +1,5 @@
+{
+    "go.testEnvFile": "${workspaceFolder}/vscode.env",
+    "go.formatTool": "gofumpt",
+    "makefile.configureOnOpen": false,
+}

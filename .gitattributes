@@ -1,2 +1,4 @@
-test/data/decrypted.ts filter=lfs diff=lfs merge=lfs -text
-test/data/encrypted.TiVo filter=lfs diff=lfs merge=lfs -text
+test/data/01-decrypted.ts filter=lfs diff=lfs merge=lfs -text
+test/data/01-encrypted.TiVo filter=lfs diff=lfs merge=lfs -text
+test/data/02-decrypted.ts filter=lfs diff=lfs merge=lfs -text
+test/data/02-encrypted.TiVo filter=lfs diff=lfs merge=lfs -text

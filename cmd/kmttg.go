@@ -26,7 +26,7 @@ import (
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
 	"github.com/tartale/kmttg-plus/go/pkg/resolvers"
 	"github.com/tartale/kmttg-plus/go/pkg/server"
-	"github.com/tartale/kmttg-plus/go/pkg/tivolibre"
+	"github.com/tartale/kmttg-plus/go/pkg/decrypter"
 	"github.com/tartale/kmttg-plus/go/pkg/tivos"
 )
 
@@ -83,7 +83,6 @@ func init() {
 			runTivoDecode()
 		},
 	})
-
 }
 
 func startJobWorkers(ctx context.Context) {
@@ -182,9 +181,7 @@ func runTerminal() {
 }
 
 func runTivoDecode() {
-	decoder := tivolibre.NewDecoder(config.Values.MediaAccessKey)
-	err := decoder.Decode(os.Stdin, os.Stdout)
-	if err != nil {
+	if err := decrypter.Decrypt(os.Stdin, os.Stdout); err != nil {
 		fmt.Printf("error: %v", err)
 	}
 }

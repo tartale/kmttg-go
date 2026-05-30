@@ -50,8 +50,8 @@ func getDownloadURL(show model.Show) (*url.URL, error) {
 func getDownloadPaths(subtask *Subtask) (tmpPath, outputPath string) {
 	show := subtask.show
 	showCanonicalName := shows.GetCanonicalName(show)
-	tmpPath = path.Join(subtask.tmpdir, showCanonicalName+".mpg.tmp")
-	outputPath = path.Join(subtask.outputdir, showCanonicalName+".mpg")
+	tmpPath = path.Join(subtask.tmpdir, showCanonicalName+".ts.tmp")
+	outputPath = path.Join(subtask.outputdir, showCanonicalName+".ts")
 
 	return
 }
@@ -86,12 +86,12 @@ func download(ctx context.Context, subtask *Subtask) error {
 	if err != nil {
 		return fmt.Errorf("could not get Tivo-Estimated-Length header: %w", err)
 	}
-	logz.LoggerX.Debugf("Initiating download/decode to temp file: %s", tmpPath)
+	logz.LoggerX.Debugf("Initiating download to temp file: %s", tmpPath)
 	progressWriter := NewProgressWriter(subtask, int64(estimatedLength))
 	multiWriter := io.MultiWriter(tmpFile, progressWriter)
 	err = decoder.Decode(ctx, resp.Body, multiWriter)
 	if err != nil {
-		return fmt.Errorf("unable to decode download stream: %w", err)
+		return fmt.Errorf("error downloading show: %w", err)
 	}
 	subtask.Status.Progress = 100
 

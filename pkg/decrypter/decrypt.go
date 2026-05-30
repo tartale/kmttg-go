@@ -12,7 +12,6 @@ import (
 	"io"
 
 	"github.com/tartale/kmttg-plus/go/pkg/config"
-	"github.com/tartale/kmttg-plus/go/pkg/logz"
 )
 
 const (
@@ -51,7 +50,6 @@ func (c *tivoChunk) deriveVideoKey() []byte {
 // at the start of a .TiVo file. The decrypted MPEG transport stream is written
 // to output.
 func Decrypt(input io.Reader, output io.Writer) error {
-	logz.LoggerX.Debugf("Starting decryption")
 	br := bufio.NewReaderSize(input, 1<<20)
 	bw := bufio.NewWriterSize(output, 1<<20)
 
@@ -90,7 +88,6 @@ func Decrypt(input io.Reader, output io.Writer) error {
 	if err := decodeTransportStream(br, bw, videoDecoder); err != nil {
 		return err
 	}
-	logz.LoggerX.Debug("Successfully finished decryption")
 
 	return bw.Flush()
 }

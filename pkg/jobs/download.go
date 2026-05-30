@@ -6,14 +6,14 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"path"
 
 	"github.com/tartale/go/pkg/filez"
 	"github.com/tartale/go/pkg/httpx"
 	"github.com/tartale/go/pkg/primitives"
 	"github.com/tartale/kmttg-plus/go/pkg/client"
-	"github.com/tartale/kmttg-plus/go/pkg/decoder"
+	"github.com/tartale/kmttg-plus/go/pkg/decrypter"
+	"github.com/tartale/kmttg-plus/go/pkg/encoder"
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
 	"github.com/tartale/kmttg-plus/go/pkg/model"
 	"github.com/tartale/kmttg-plus/go/pkg/shows"
@@ -50,8 +50,8 @@ func getDownloadURL(show model.Show) (*url.URL, error) {
 func getDownloadPaths(subtask *Subtask) (tmpPath, outputPath string) {
 	show := subtask.show
 	showCanonicalName := shows.GetCanonicalName(show)
-	tmpPath = path.Join(subtask.tmpdir, showCanonicalName+".ts.tmp")
-	outputPath = path.Join(subtask.outputdir, showCanonicalName+".ts")
+	tmpPath = path.Join(subtask.tmpdir, showCanonicalName+".mkv.tmp")
+	outputPath = path.Join(subtask.outputdir, showCanonicalName+".mkv")
 
 	return
 }
@@ -80,17 +80,23 @@ func download(ctx context.Context, subtask *Subtask) error {
 	}
 
 	tmpPath, downloadPath := getDownloadPaths(subtask)
-	tmpFile := filez.MustOpenFile(tmpPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o664)
-	defer tmpFile.Close()
 	estimatedLength, err := primitives.ParseTo[int](resp.Header.Get("TiVo-Estimated-Length"))
 	if err != nil {
 		return fmt.Errorf("could not get Tivo-Estimated-Length header: %w", err)
 	}
 	logz.LoggerX.Debugf("Initiating download to temp file: %s", tmpPath)
 	progressWriter := NewProgressWriter(subtask, int64(estimatedLength))
-	multiWriter := io.MultiWriter(tmpFile, progressWriter)
-	err = decoder.Decode(ctx, resp.Body, multiWriter)
-	if err != nil {
+	pr, pw := io.Pipe()
+	decryptErrc := make(chan error, 1)
+	go func() {
+		err := decrypter.Decrypt(resp.Body, io.MultiWriter(pw, progressWriter))
+		pw.CloseWithError(err)
+		decryptErrc <- err
+	}()
+	if err = encoder.Encode(pr, tmpPath); err != nil {
+		return fmt.Errorf("error encoding show: %w", err)
+	}
+	if err = <-decryptErrc; err != nil {
 		return fmt.Errorf("error downloading show: %w", err)
 	}
 	subtask.Status.Progress = 100
